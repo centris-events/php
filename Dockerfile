@@ -1,4 +1,4 @@
-FROM php:7.3-apache
+FROM php:7.3.33-apache
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
@@ -33,7 +33,7 @@ RUN apt-get update \
 	bcmath \
 	&& docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
 	&& docker-php-ext-install gd \
-	&& pecl install xdebug \
+	&& pecl install xdebug-3.1.5 \
 	&& docker-php-ext-enable xdebug \
 	&& wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
 	&& tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
@@ -46,15 +46,19 @@ RUN apt-get update \
 	&& apt-get install -y newrelic-php5 \
 	&& NR_INSTALL_SILENT=1 newrelic-install install
 
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+	&& php -r "if (hash_file('sha384', 'composer-setup.php') === '55ce33d7678c5a611085589f1f3ddf8b3c52d662cd01d4ba75c0ee0459970c2200a51f492d557530c71c15d8dba01eae') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
+	&& php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+	&& php -r "unlink('composer-setup.php');"
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-	&& usermod -u $USER_ID www-data \
+RUN usermod -u $USER_ID www-data \
 	&& groupmod -g $GROUP_ID www-data \
 	&& mkdir -p /var/www/.composer \
-	&& chown -R www-data:www-data /var/www/.composer \
-	&& sudo -u www-data composer global require 'hirak/prestissimo:^0.3' \
-	&& sudo -u www-data composer global require phing/phing ~2.0 \
-	&& a2enmod rewrite \
+	&& chown -R www-data:www-data /var/www/.composer
+
+RUN sudo -u www-data composer global require phing/phing ~2.0
+
+RUN a2enmod rewrite \
 	&& a2enmod proxy \
 	&& a2enmod proxy_http \
 	&& a2enmod proxy_ajp \
