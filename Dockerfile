@@ -1,4 +1,4 @@
-FROM php:8.1-apache
+FROM php:8.5-apache
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000
@@ -25,14 +25,13 @@ RUN apt-get update \
 	wget \
 	&& rm -r /var/lib/apt/lists/*
 
-# Install PHP extensions
+# Install PHP extensions (opcache is included in php:8.5-apache, skip to avoid build failure)
 RUN docker-php-ext-install \
 	iconv \
 	intl \
 	mbstring \
 	pdo_mysql \
 	zip \
-	opcache \
 	bcmath \
 	simplexml
 
@@ -40,8 +39,8 @@ RUN docker-php-ext-install \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 	&& docker-php-ext-install gd
 
-# Install Xdebug
-RUN pecl install xdebug-3.3.0 \
+# Install Xdebug (3.5+ for PHP 8.5)
+RUN pecl install xdebug \
 	&& docker-php-ext-enable xdebug
 
 # Install dockerize
@@ -49,13 +48,13 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
 	&& tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
 	&& rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 
-# Install New Relic
-RUN wget -O- https://download.newrelic.com/NEWRELIC_APT_2DAD550E.public | gpg --dearmor -o /usr/share/keyrings/download.newrelic.com-newrelic.gpg \
-	&& echo 'deb [signed-by=/usr/share/keyrings/download.newrelic.com-newrelic.gpg] http://apt.newrelic.com/debian/ newrelic non-free' > /etc/apt/sources.list.d/newrelic.list \
-	&& apt-get update \
-	&& apt-get install -y newrelic-php5 \
-	&& NR_INSTALL_SILENT=1 newrelic-install install \
-	&& rm -r /var/lib/apt/lists/*
+# Install New Relic (tar method works on both amd64 and arm64; apt only has amd64)
+ENV NEWRELIC_PHP_AGENT_VERSION=12.5.0.30
+RUN wget -q https://download.newrelic.com/php_agent/release/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux.tar.gz -O /tmp/newrelic.tar.gz \
+	&& gzip -dc /tmp/newrelic.tar.gz | tar xf - -C /tmp \
+	&& cd /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux \
+	&& NR_INSTALL_SILENT=1 ./newrelic-install install \
+	&& rm -rf /tmp/newrelic.tar.gz /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux
 
 # Install Composer
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \

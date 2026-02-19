@@ -7,4 +7,4 @@ if [ $# -eq 0 ]
     exit 1
 fi
 
-docker push myworkupapp/docker-php:$1
+docker push centris/php:$1

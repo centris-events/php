@@ -7,4 +7,4 @@ if [ $# -eq 0 ]
     exit 1
 fi
 
-docker build -t myworkupapp/docker-php:$1 .
+docker build -t centris/php:$1 .
