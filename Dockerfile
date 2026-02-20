@@ -43,10 +43,12 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 RUN pecl install xdebug \
 	&& docker-php-ext-enable xdebug
 
-# Install dockerize
-RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
-	&& tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
-	&& rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+# Install dockerize (use TARGETARCH so image runs natively on arm64 and amd64)
+ARG TARGETARCH
+RUN DOCKERIZE_ARCH=${TARGETARCH:-amd64} \
+	&& wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-${DOCKERIZE_ARCH}-$DOCKERIZE_VERSION.tar.gz -O /tmp/dockerize.tar.gz \
+	&& tar -C /usr/local/bin -xzvf /tmp/dockerize.tar.gz \
+	&& rm /tmp/dockerize.tar.gz
 
 # Install New Relic (tar method works on both amd64 and arm64; apt only has amd64)
 ENV NEWRELIC_PHP_AGENT_VERSION=12.5.0.30
@@ -55,6 +57,10 @@ RUN wget -q https://download.newrelic.com/php_agent/release/newrelic-php5-${NEWR
 	&& cd /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux \
 	&& NR_INSTALL_SILENT=1 ./newrelic-install install \
 	&& rm -rf /tmp/newrelic.tar.gz /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux
+
+# If New Relic did not install the .so (e.g. PHP 8.5 not yet supported), disable it so PHP does not warn
+RUN EXT_DIR=$(php -r 'echo ini_get("extension_dir");') \
+	&& if [ ! -f "$EXT_DIR/newrelic.so" ]; then find /usr/local/etc/php -name '*newrelic*' -delete; fi
 
 # Install Composer
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
