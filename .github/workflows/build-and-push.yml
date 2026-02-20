@@ -78,5 +78,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          cache-from: type=gha,scope=php-base-image
+          cache-to: type=gha,mode=max,scope=php-base-image
+          provenance: false
+          sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
