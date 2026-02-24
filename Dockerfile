@@ -55,12 +55,18 @@ ENV NEWRELIC_PHP_AGENT_VERSION=12.5.0.30
 RUN wget -q https://download.newrelic.com/php_agent/release/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux.tar.gz -O /tmp/newrelic.tar.gz \
 	&& gzip -dc /tmp/newrelic.tar.gz | tar xf - -C /tmp \
 	&& cd /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux \
-	&& NR_INSTALL_SILENT=1 ./newrelic-install install \
+	&& NR_INSTALL_USE_CP_NOT_LN=1 NR_INSTALL_SILENT=1 ./newrelic-install install \
 	&& rm -rf /tmp/newrelic.tar.gz /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux
 
-# If New Relic did not install the .so (e.g. PHP 8.5 not yet supported), disable it so PHP does not warn
+# If New Relic installed successfully, always enable extension in the base image.
+# If it did not install the .so (e.g. PHP 8.5 not yet supported), remove dangling configs to avoid PHP warnings.
 RUN EXT_DIR=$(php -r 'echo ini_get("extension_dir");') \
-	&& if [ ! -f "$EXT_DIR/newrelic.so" ]; then find /usr/local/etc/php -name '*newrelic*' -delete; fi
+	&& if [ -f "$EXT_DIR/newrelic.so" ]; then \
+		find /usr/local/etc/php -name '*newrelic*.ini' -delete; \
+		printf '%s\n' 'extension = "newrelic.so"' > /usr/local/etc/php/conf.d/20-newrelic.ini; \
+	else \
+		find /usr/local/etc/php -name '*newrelic*' -delete; \
+	fi
 
 # Install Composer
 RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
