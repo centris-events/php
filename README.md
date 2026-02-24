@@ -6,4 +6,6 @@ How to build the image:
 
 How to publish the image:
 
-    docker push myworkupapp/docker-php:<tag>
+    ./push.sh <tag>
+
+`push.sh` publishes a multi-arch image manifest for `linux/amd64` and `linux/arm64`.
