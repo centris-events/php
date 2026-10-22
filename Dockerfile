@@ -52,7 +52,7 @@ RUN DOCKERIZE_ARCH=${TARGETARCH:-amd64} \
 
 # Install New Relic (tar method works on both amd64 and arm64; apt only has amd64)
 ENV NEWRELIC_PHP_AGENT_VERSION=12.5.0.30
-RUN wget -q https://download.newrelic.com/php_agent/release/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux.tar.gz -O /tmp/newrelic.tar.gz \
+RUN wget -q https://download.newrelic.com/php_agent/archive/${NEWRELIC_PHP_AGENT_VERSION}/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux.tar.gz -O /tmp/newrelic.tar.gz \
 	&& gzip -dc /tmp/newrelic.tar.gz | tar xf - -C /tmp \
 	&& cd /tmp/newrelic-php5-${NEWRELIC_PHP_AGENT_VERSION}-linux \
 	&& NR_INSTALL_USE_CP_NOT_LN=1 NR_INSTALL_SILENT=1 ./newrelic-install install \
